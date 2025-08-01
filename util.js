@@ -6,39 +6,41 @@ const squareSize = size / squares;
 
 // Piece encoding
 const PIECE = {
-  'P': 1, 'N': 2, 'B': 3, 'R': 4, 'Q': 5, 'K': 6,
-  'p': 1, 'n': 2, 'b': 3, 'r': 4, 'q': 5, 'k': 6
+  'p': 1, 'r': 2, 'n':3, 'b': 4, 'q': 5, 'k': 6
 };
 const COLOR = {
-  'P': 0, 'N': 0, 'B': 0, 'R': 0, 'Q': 0, 'K': 0,
-  'p': 1, 'n': 1, 'b': 1, 'r': 1, 'q': 1, 'k': 1
+  'w':0, 'b':8
 };
-const PIECE_TO_CHAR = [
-  '', 'P', 'N', 'B', 'R', 'Q', 'K'
-];
 const PIECE_TO_IMG = [
-  '', 'pawn', 'knight', 'bishop', 'rook', 'queen', 'king'
+  '', 'pawn', 'rook', 'knight', 'bishop', 'queen', 'king'
 ];
 
-
-// Map from board index to row/col
-function idxToRowCol(idx) {
-  return { row: Math.floor(idx / 8), col: idx % 8 };
+function idx2XY(idx) {
+  return {rank: Math.floor(idx/8), file: idx % 8}
+}
+function XY2Idx(XY) {
+  const {rank, file} = XY;
+  return rank*8 + file;
+}
+function idx2Pos(idx) {
+  const {rank, file} = idx2XY(idx);
+  return "abcdefgh".charAt(file) + "12345678".charAt(rank);
 }
 
-// Map from row/col to board index (a8=0, h1=63)
-function rowColToIdx(row, col) {
-  return row * 8 + col;
+function pos2Idx(pos) {
+  const rank = pos.charCodeAt(1) - "1".charCodeAt(0);
+  const file = pos.charCodeAt(0) - "a".charCodeAt(0);
+  return rank * 8 + file;
 }
 
 
 // Piece image loading
-const pieceNames = ['pawn', 'knight', 'bishop', 'rook', 'queen', 'king'];
 const images = {};
 let loaded = 0;
 const game = new Game();
-const totalPieces = pieceNames.length * 2;
-for (const name of pieceNames) {
+const totalPieces = (PIECE_TO_IMG.length-1) * 2;
+for (const name of PIECE_TO_IMG) {
+  if (name == '') continue;
   for (const color of ['w', 'b']) {
     const key = `${name}-${color}.svg`;
     images[key] = new Image();
@@ -58,9 +60,14 @@ canvas.addEventListener('mousedown', (e) => {
   const y = e.clientY - rect.top;
   const col = Math.floor(x / squareSize);
   const row = Math.floor(y / squareSize);
-  const idx = rowColToIdx(row, col);
+  const idx = XY2Idx({rank: row, file: col});
 
   game.click(idx);
 });
 
 
+// SOUNDS
+var SOUNDS = {
+  capture: new Audio('sounds/capture.mp3'),
+  move: new Audio('sounds/move-self.mp3')
+}
