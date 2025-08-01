@@ -20,7 +20,7 @@ function idx2XY(idx) {
 }
 function XY2Idx(XY) {
   const {rank, file} = XY;
-  return rank*8 + file;
+  return rank * 8 + file;
 }
 function idx2Pos(idx) {
   const {rank, file} = idx2XY(idx);
@@ -60,7 +60,7 @@ canvas.addEventListener('mousedown', (e) => {
   const y = e.clientY - rect.top;
   const col = Math.floor(x / squareSize);
   const row = Math.floor(y / squareSize);
-  const idx = XY2Idx({rank: row, file: col});
+  const idx = XY2Idx({rank: 7-row, file: col});
 
   game.click(idx);
 });
