@@ -3,7 +3,7 @@ class Game {
         this.board = new Uint8Array(64);
         this.activeColor = 0
         this.castlingRights = "-";
-        this.enPassantTarget = "-";
+        this.enPassantTarget = undefined;
         this.fullmoveNumber = 1;
         this.halfmoveClock = 0;
         
@@ -27,8 +27,8 @@ class Game {
         } else {
             if (this.checkLegal(this.selected, idx)) {
                 this.move(this.selected, idx);
-                this.legalMoves = [];
             }
+            this.legalMoves = [];
             this.selected = undefined;
         }
         this.render();
@@ -91,7 +91,7 @@ class Game {
         for (let idx = 0; idx < 64; idx++) {
             const {rank, file} = idx2XY(idx);
             ctx.fillStyle = (rank + file) % 2 === 0 ? '#f0d9b5' : '#b58863';
-            if (this.legalMoves.includes(idx)) ctx.fillStyle = '#f54254';
+            
             if (idx == this.selected) ctx.fillStyle = '#b9d986';
             ctx.fillRect(file * squareSize, (7-rank) * squareSize, squareSize, squareSize);
 
@@ -110,7 +110,18 @@ class Game {
                     );
                 }
             }
+            if (this.legalMoves.includes(idx)) {
+                ctx.fillStyle = '#f54254'
+                ctx.beginPath();
+                ctx.arc(file * squareSize + squareSize/2, (7-rank) * squareSize+squareSize/2, squareSize/6, 0, Math.PI*2)
+                ctx.fill();
+            }
+            
         }
+    }
+
+    hasColor(color, idx) {
+        return (this.board[idx] && ((this.board[idx] & 0x8) == color));
     }
 
     getLegalMoves(idx) {
@@ -122,7 +133,76 @@ class Game {
         if (type == PIECE.p) {
             moves.push(idx+(color == 0 ? 8 : -8));
         }
-        
+
+        if (type == PIECE.n) {
+            const coords = idx2XY(idx);
+            for (let x = -1; x < 2; x+=2) {
+                for (let y = -1; y < 2; y+=2) {
+                    let t = {rank: coords.rank + x*2, file: coords.file + y*1};
+                    let tIdx = XY2Idx(t);
+                    if (t.rank >= 0 && t.file >= 0 && t.rank < 8 && t.file < 8 && !this.hasColor(color, tIdx)) moves.push(tIdx);
+                    t = {rank: coords.rank + x*1, file: coords.file + y*2};
+                    tIdx = XY2Idx(t);
+                    if (t.rank >= 0 && t.file >= 0 && t.rank < 8 && t.file < 8 && !this.hasColor(color, tIdx)) moves.push(tIdx);
+                }
+            }
+        }
+
+        if (type == PIECE.k) {
+            const coords = idx2XY(idx);
+            for (let x = -1; x < 2; x++) {
+                for (let y = -1; y < 2; y++) {
+                    if (x == y && y == 0) continue;
+                    let t = {rank: coords.rank + x, file: coords.file + y};
+                    let tIdx = XY2Idx(t);
+                    if (t.rank >= 0 && t.file >= 0 && t.rank < 8 && t.file < 8 && !this.hasColor(color, tIdx)) moves.push(tIdx);
+                }
+            }
+        }
+
+        if (type == PIECE.b || type == PIECE.q) {
+            const coords = idx2XY(idx);
+            for (let x = -1; x < 2; x += 2) {
+                for (let y = -1; y < 2; y += 2) {
+                    for (let i = 1; i < 9; i += 1) {
+                        let t = {rank: coords.rank + x*i, file: coords.file + y*i};
+                        let tIdx = XY2Idx(t);
+                        if (t.rank >= 0 && t.file >= 0 && t.rank < 8 && t.file < 8) {
+                            if (this.board[tIdx] == 0) {
+                                moves.push(tIdx);
+                            } else {
+                                if (!this.hasColor(color, tIdx)) moves.push(tIdx);
+                                i = 9;
+                            }
+                        } else {
+                            i = 9;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (type == PIECE.r || type == PIECE.q) {
+            const coords = idx2XY(idx);
+            for (let x = -1; x < 2; x += 2) {
+                for (let y = 0;y < 2; y++) {
+                    for (let i = 1; i < 9; i += 1) {
+                        let t = {rank: coords.rank + x*i*(1-y), file: coords.file + y*i*x};
+                        let tIdx = XY2Idx(t);
+                        if (t.rank >= 0 && t.file >= 0 && t.rank < 8 && t.file < 8) {
+                            if (this.board[tIdx] == 0) {
+                                moves.push(tIdx);
+                            } else {
+                                if (!this.hasColor(color, tIdx)) moves.push(tIdx);
+                                i = 9;
+                            }
+                        } else {
+                            i = 9;
+                        }
+                    }
+                }
+            }
+        }
 
         return moves;
     }
