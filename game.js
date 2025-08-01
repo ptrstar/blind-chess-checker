@@ -17,7 +17,7 @@ class Game {
     }
 
     click(idx) {
-        //console.log(idx, idx2Pos(idx), idx2XY(idx))
+        console.log(idx, idx2Pos(idx), idx2XY(idx))
         if (this.selected == undefined) {
             const target = this.board[idx];
             if (!target) return;
@@ -59,7 +59,7 @@ class Game {
         }
         this.activeColor = COLOR[color];
         this.castlingRights = castling || '-';
-        this.enPassantTarget = ep || '-';
+        this.enPassantTarget = (ep == "-" ? undefined : pos2Idx(ep));
         this.halfmoveClock = halfmove ? parseInt(halfmove) : 0;
         this.fullmoveNumber = fullmove ? parseInt(fullmove) : 1;
     }
@@ -79,8 +79,28 @@ class Game {
 
     move(from, to) {
 
-        if (this.board[to] == 0) SOUNDS.move.play()
+        const target = this.board[from];
+        const type = 0x7 & target;
+        const color = COLOR.b & target;
+        let playing = false;
+
+        if (to == this.enPassantTarget && type == PIECE.p) {
+            this.board[to + (color == COLOR.w ? -8 : 8)] = 0;
+            playing = true;
+            SOUNDS.capture.play();
+        }
+
+        this.enPassantTarget = undefined;
+
+        if (type == PIECE.p) {
+            if (Math.abs(from - to) == 16) this.enPassantTarget = (from + to) / 2;
+        }
+
+        if (playing == false) {
+            if (this.board[to] == 0) SOUNDS.move.play()
             else SOUNDS.capture.play()
+        }
+        
 
         this.board[to] = this.board[from];
         this.board[from] = 0;
@@ -131,7 +151,22 @@ class Game {
         const moves = [];
 
         if (type == PIECE.p) {
-            moves.push(idx+(color == 0 ? 8 : -8));
+            let t = idx+(color == 0 ? 8 : -8);
+            if (t < 64 && t >= 0 && this.board[t] == 0) moves.push(t);
+            
+            let t2 = idx+(color == 0 ? 16 : -16);
+            console.log((color == 0 ? 1 : 6) == idx2XY(idx).rank)
+            if ((color == 0 ? 1 : 6) == idx2XY(idx).rank && this.board[t] == 0 && this.board[t2] == 0) moves.push(t2);
+            
+            t = idx2XY(t);
+            let tl = {rank: t.rank, file: t.file+1}
+            if (tl.file < 8 && ((this.board[XY2Idx(tl)] != 0 && !this.hasColor(color, XY2Idx(tl))) || XY2Idx(tl) == this.enPassantTarget)) moves.push(XY2Idx(tl));
+
+            let tr = {rank: t.rank, file: t.file-1}
+            if (tl.file >= 0 && ((this.board[XY2Idx(tr)] != 0 && !this.hasColor(color, XY2Idx(tr))) || XY2Idx(tr) == this.enPassantTarget)) moves.push(XY2Idx(tr));
+
+
+
         }
 
         if (type == PIECE.n) {
