@@ -14,6 +14,9 @@ const COLOR = {
 const PIECE_TO_IMG = [
   '', 'pawn', 'rook', 'knight', 'bishop', 'queen', 'king'
 ];
+const CASTLE = {
+  'K': 6, 'Q': 2, 'k': 62, 'q': 58
+}
 
 function idx2XY(idx) {
   return {rank: Math.floor(idx/8), file: idx % 8}

@@ -2,7 +2,7 @@ class Game {
     constructor() {
         this.board = new Uint8Array(64);
         this.activeColor = 0
-        this.castlingRights = "-";
+        this.castlingRights = [];
         this.enPassantTarget = undefined;
         this.fullmoveNumber = 1;
         this.halfmoveClock = 0;
@@ -43,7 +43,6 @@ class Game {
         if (!fen || typeof fen !== 'string') return;
         this.board.fill(0);
         const rows = piecePlacement.split('/');
-        console.log(rows)
         let idx = 56;
         for (let r = 0; r < 8; r++) {
             for (const ch of rows[r]) {
@@ -58,7 +57,7 @@ class Game {
             idx -= 16;
         }
         this.activeColor = COLOR[color];
-        this.castlingRights = castling || '-';
+        this.castlingRights = castling.split('').map(ch => CASTLE[ch]);
         this.enPassantTarget = (ep == "-" ? undefined : pos2Idx(ep));
         this.halfmoveClock = halfmove ? parseInt(halfmove) : 0;
         this.fullmoveNumber = fullmove ? parseInt(fullmove) : 1;
@@ -96,6 +95,21 @@ class Game {
             if (Math.abs(from - to) == 16) this.enPassantTarget = (from + to) / 2;
         }
 
+        // remove castling rights
+        if (from == 0 || to == 0) this.castlingRights = this.castlingRights.filter((r) => r != 2);
+        if (from == 7 || to == 7) this.castlingRights = this.castlingRights.filter((r) => r != 6);
+        if (from == 4 || to == 4) this.castlingRights = this.castlingRights.filter((r) => r != 2 && r != 6);
+        if (from == 56 || to == 56) this.castlingRights = this.castlingRights.filter((r) => r != 58);
+        if (from == 63 || to == 63) this.castlingRights = this.castlingRights.filter((r) => r != 62);
+        if (from == 60 || to == 60) this.castlingRights = this.castlingRights.filter((r) => r != 58 && r != 62);
+
+        if (type == PIECE.k) {
+            if (Math.abs(from - to) == 2) {
+                this.board[Math.floor(to/8)*8+ Math.round((to%8)/7)*7] = 0;
+                this.board[from - (from - to)/2] = color | PIECE.r;
+            }
+        }
+
         if (playing == false) {
             if (this.board[to] == 0) SOUNDS.move.play()
             else SOUNDS.capture.play()
@@ -110,7 +124,7 @@ class Game {
     render() {
         for (let idx = 0; idx < 64; idx++) {
             const {rank, file} = idx2XY(idx);
-            ctx.fillStyle = (rank + file) % 2 === 0 ? '#f0d9b5' : '#b58863';
+            ctx.fillStyle = (rank + file) % 2 === 1 ? '#f0d9b5' : '#b58863';
             
             if (idx == this.selected) ctx.fillStyle = '#b9d986';
             ctx.fillRect(file * squareSize, (7-rank) * squareSize, squareSize, squareSize);
@@ -192,6 +206,33 @@ class Game {
                     let tIdx = XY2Idx(t);
                     if (t.rank >= 0 && t.file >= 0 && t.rank < 8 && t.file < 8 && !this.hasColor(color, tIdx)) moves.push(tIdx);
                 }
+            }
+
+            // castling
+            if (color == COLOR.w) {
+                if (
+                    this.castlingRights.includes(2) &&
+                    this.board[3] == 0 &&
+                    this.board[2] == 0 &&
+                    this.board[1] == 0
+                ) moves.push(2);
+                if (
+                    this.castlingRights.includes(6) &&
+                    this.board[6] == 0 &&
+                    this.board[5] == 0
+                ) moves.push(6);
+            } else {
+               if (
+                    this.castlingRights.includes(58) &&
+                    this.board[57] == 0 &&
+                    this.board[58] == 0 &&
+                    this.board[59] == 0
+                ) moves.push(58);
+                if (
+                    this.castlingRights.includes(62) &&
+                    this.board[62] == 0 &&
+                    this.board[61] == 0
+                ) moves.push(62); 
             }
         }
 
